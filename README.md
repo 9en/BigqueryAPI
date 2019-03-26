@@ -1,0 +1,2 @@
+# BigqueryAPI
+Bigqueryに関する処理をまとめたパッケージ
