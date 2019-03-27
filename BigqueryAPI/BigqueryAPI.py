@@ -112,7 +112,6 @@ class GCP:
             config = bigquery.LoadJobConfig()
             config.write_disposition = self.WRITE_DISPOSITION
             config.field_delimiter = '\t'
-            config.skip_leading_rows = 1
         elif run_type == 'download_data':
             config = bigquery.QueryJobConfig()
             config.use_legacy_sql = self.USE_LEGACY_SQL
@@ -137,14 +136,14 @@ class GCP:
         config = self.set_config(sys._getframe().f_code.co_name)
         query = self.read_query()
         rows = self.client.query(query, job_config=config).result()
-        with open('data.tsv', 'w') as f:
+        with open(os.getcwd() + '/data.tsv', 'w') as f:
             for row in rows:
                 f.write('\t'.join(map(str, list(row))) + '\n')
 
     def load_data(self):
         config = self.set_config(sys._getframe().f_code.co_name)
         table_ref = self.dataset_ref.table(self.TABLE_NAME + '$' + self.YYYYMMDD)
-        with open('data.tsv', 'rb') as f:
+        with open(os.getcwd() + '/data.tsv', 'rb') as f:
             job = self.client.load_table_from_file(file_obj=f, destination=table_ref, job_config=config)
         try:
             job.result()
