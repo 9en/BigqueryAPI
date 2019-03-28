@@ -112,6 +112,7 @@ class GCP:
             config = bigquery.LoadJobConfig()
             config.write_disposition = self.WRITE_DISPOSITION
             config.field_delimiter = '\t'
+            config.max_bad_records = 20
         elif run_type == 'download_data':
             config = bigquery.QueryJobConfig()
             config.use_legacy_sql = self.USE_LEGACY_SQL
