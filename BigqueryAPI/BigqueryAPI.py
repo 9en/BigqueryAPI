@@ -35,8 +35,7 @@ class GCP:
         self.WRITE_DISPOSITION = cfgparser.get('bigquery', 'write_disposition')
         self.YYYY_MM_DD = yyyy_mm_dd
         self.YYYYMMDD = yyyy_mm_dd.replace('-', '')
-#        self.client = bigquery.Client.from_service_account_json(cfgparser.get('bigquery', 'secret_file'), project=self.PROJECT)
-        self.client = bigquery.Client.from_service_account_json(project=self.PROJECT)
+        self.client = bigquery.Client.from_service_account_json(cfgparser.get('bigquery', 'secret_file'), project=self.PROJECT)
         self.dataset_ref = self.client.dataset(str(self.DATASET))
         self.wait_time = 1 * 60
         self.query_params = [
