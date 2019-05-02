@@ -26,7 +26,7 @@ class GCP:
         self.FILEPATH = filepath
         cfgparser = configparser.ConfigParser()
         cfgparser.optionxform = str
-        cfgparser.read('/'.join([self.FILEPATH,'config.ini']), 'UTF-8')
+        cfgparser.read('/'.join(filter(lambda str:str != '', [self.FILEPATH,'config.ini'])), 'UTF-8')
         self.TABLE_NAME = cfgparser.get('bigquery', 'tablename')
         self.DATASET = cfgparser.get('bigquery', 'dataset')
         self.PROJECT = cfgparser.get('bigquery', 'gcp_project')
@@ -44,7 +44,7 @@ class GCP:
                 ]
 
     def read_schema(self):
-        return importlib.import_module('.'.join([self.FILEPATH ,'schema'])).schema
+        return importlib.import_module('.'.join(filter(lambda str:str != '', [self.FILEPATH ,'schema']))).schema
 
     def read_query(self):
         filename = self.FILEPATH + '/query.sql'
