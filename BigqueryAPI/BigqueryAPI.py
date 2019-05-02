@@ -26,7 +26,7 @@ class GCP:
         self.FILEPATH = filepath
         cfgparser = configparser.ConfigParser()
         cfgparser.optionxform = str
-        cfgparser.read(self.FILEPATH + '/config.ini', 'UTF-8')
+        cfgparser.read('/'.join([self.FILEPATH,'config.ini']), 'UTF-8')
         self.TABLE_NAME = cfgparser.get('bigquery', 'tablename')
         self.DATASET = cfgparser.get('bigquery', 'dataset')
         self.PROJECT = cfgparser.get('bigquery', 'gcp_project')
