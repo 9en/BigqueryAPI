@@ -73,6 +73,7 @@ tablename: test
 allow_large_results: True
 use_legacy_sql: False
 write_disposition: WRITE_TRUNCATE
+clustering_fields: f1,f2 # ここは任意（複数フィールド指定する場合はカンマ区切り）
 ```
 
 ## query.sql

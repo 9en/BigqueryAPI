@@ -33,6 +33,7 @@ class GCP:
         self.ALLOW_LARGE_RESULTS = cfgparser.get('bigquery', 'allow_large_results')
         self.USE_LEGACY_SQL = cfgparser.get('bigquery', 'use_legacy_sql')
         self.WRITE_DISPOSITION = cfgparser.get('bigquery', 'write_disposition')
+        self.CLUSTERING_FIELDS = cfgparser.get('bigquery', 'clustering_fields', fallback=None)
         self.YYYY_MM_DD = yyyy_mm_dd
         self.YYYYMMDD = yyyy_mm_dd.replace('-', '')
         self.client = bigquery.Client.from_service_account_json(cfgparser.get('bigquery', 'secret_file'), project=self.PROJECT)
@@ -47,7 +48,7 @@ class GCP:
         return importlib.import_module('.'.join(filter(lambda str:str != '', [self.FILEPATH ,'schema']))).schema
 
     def read_query(self):
-        filename = self.FILEPATH + '/query.sql'
+        filename = self.FILEPATH + 'query.sql'
         query = re.sub('\n', " ",re.sub('--.*\n', "\n", open(filename, 'r', encoding='utf-8').read()))
         query = query.replace('${YYYY_MM_DD}', self.YYYY_MM_DD)
         query = query.replace('${YYYYMMDD}', self.YYYYMMDD)
@@ -66,7 +67,9 @@ class GCP:
         schema = self.read_schema()
         table_ref = self.dataset_ref.table(self.TABLE_NAME)
         table = bigquery.Table(table_ref, schema=schema)
-        table.partitioning_type = 'DAY'
+        table.time_partitioning = bigquery.table.TimePartitioning(type_='DAY', require_partition_filter=True)
+        if self.CLUSTERING_FIELDS:
+            table.clustering_fields = self.CLUSTERING_FIELDS.split(',')
         table = self.client.create_table(table)
 
     def exists_table(self):
@@ -77,9 +80,10 @@ class GCP:
         except NotFound:
             return False
 
-    def wait_condition(self, query, config):
+    def wait_condition(self, query, config_type):
         total_byte = total_byte_old = 0
         while total_byte == 0 or total_byte != total_byte_old:
+            config = self.set_config(config_type)
             query_job = self.client.query(query, job_config=config)
             total_byte_old = total_byte
             total_byte = query_job.total_bytes_processed
@@ -88,8 +92,8 @@ class GCP:
 
     def run_dry(self, table_name, option):
         query = self.read_param_query(' * ' ,table_name, option['type'], option['days_ago'])
-        config = self.set_config(sys._getframe().f_code.co_name)
-        self.wait_condition(query, config)
+        config_type = sys._getframe().f_code.co_name
+        self.wait_condition(query, config_type)
 
     def set_config(self, run_type):
         table_ref = self.dataset_ref.table(self.TABLE_NAME + '$' + self.YYYYMMDD)
