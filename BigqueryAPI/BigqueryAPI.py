@@ -9,6 +9,7 @@ import time
 import datetime
 import importlib
 from google.cloud import bigquery
+from google.cloud import storage
 
 class GCP:
     '''
@@ -22,7 +23,7 @@ class GCP:
     :param yyyy_mm_dd
         パーティションを指定するときの日付（YYYY-MM-DD）
     '''
-    def __init__(self, filepath, yyyy_mm_dd):
+    def __init__(self, filepath=None, yyyy_mm_dd=None):
         self.FILEPATH = filepath
         cfgparser = configparser.ConfigParser()
         cfgparser.optionxform = str
@@ -34,15 +35,20 @@ class GCP:
         self.USE_LEGACY_SQL = cfgparser.get('bigquery', 'use_legacy_sql')
         self.WRITE_DISPOSITION = cfgparser.get('bigquery', 'write_disposition')
         self.CLUSTERING_FIELDS = cfgparser.get('bigquery', 'clustering_fields', fallback=None)
-        self.YYYY_MM_DD = yyyy_mm_dd
-        self.YYYYMMDD = yyyy_mm_dd.replace('-', '')
+        if yyyy_mm_dd:
+            self.YYYY_MM_DD = yyyy_mm_dd
+            self.YYYYMMDD = yyyy_mm_dd.replace('-', '')
+            self.query_params = [
+                    bigquery.ScalarQueryParameter('YYYYMMDD', 'STRING', self.YYYYMMDD),
+                    bigquery.ScalarQueryParameter('YYYY_MM_DD', 'STRING', self.YYYY_MM_DD)
+                    ]
         self.client = bigquery.Client.from_service_account_json(cfgparser.get('bigquery', 'secret_file'), project=self.PROJECT)
         self.dataset_ref = self.client.dataset(str(self.DATASET))
         self.wait_time = 1 * 60
-        self.query_params = [
-                bigquery.ScalarQueryParameter('YYYYMMDD', 'STRING', self.YYYYMMDD),
-                bigquery.ScalarQueryParameter('YYYY_MM_DD', 'STRING', self.YYYY_MM_DD)
-                ]
+
+        self.storage_client = storage.Client.from_service_account_json(cfgparser.get('bigquery', 'secret_file'), project=self.PROJECT)
+        self.BUCKET = cfgparser.get('gcs', 'bucket', fallback=None)
+
 
     def read_schema(self):
         return importlib.import_module('.'.join(filter(lambda str:str != '', [self.FILEPATH ,'schema']))).schema
@@ -175,7 +181,7 @@ class GCP:
 
         Sample::
         >>> import BigqueryAPI
-        >>> BQ = BigqueryAPI.GCP('sample', '2019-03-25')
+        >>> BQ = BigqueryAPI.GCP('.', '2019-03-25')
         >>> BQ.bq_load()
         '''
         if not self.exists_table():
@@ -194,7 +200,7 @@ class GCP:
 
         Sample::
         >>> import BigqueryAPI
-        >>> BQ = BigqueryAPI.GCP('sample', '2019-03-25')
+        >>> BQ = BigqueryAPI.GCP('.', '2019-03-25')
         >>> BQ.bq_download()
         '''
         self.download_data()
@@ -210,11 +216,25 @@ class GCP:
 
         Sample::
         >>> import BigqueryAPI
-        >>> BQ = BigqueryAPI.GCP('sample', '2019-03-25')
+        >>> BQ = BigqueryAPI.GCP('.', '2019-03-25')
         >>> BQ.bq()
         '''
         if not self.exists_table():
             self.create_table()
         self.run_query()
 
+    def gs_upload(self, infile, gs_path):
+        '''
+        Description::
+            データをgcsにアップロードする
+        Config::
+            * config.ini
 
+        Sample::
+        >>> import BigqueryAPI
+        >>> BQ = BigqueryAPI.GCP('.')
+        >>> BQ.gs_upload('infile_name', 'gs_path')
+        '''
+        bucket = self.storage_client.get_bucket(self.BUCKET)
+        blob = bucket.blob(gs_path)
+        blob.upload_from_filename(infile)

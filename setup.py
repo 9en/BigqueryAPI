@@ -16,7 +16,7 @@ setup(
     author='9en',
     author_email='mty.0613@gmail.com',
     python_requires='>=3.4',
-    install_requires=['configparser', 'google-cloud-bigquery', 'importlib'],
+    install_requires=['configparser', 'google-cloud-bigquery', 'importlib', 'google-cloud-storage'],
     url='https://github.com/9en/BigqueryAPI',
     license=license,
     packages=find_packages()
